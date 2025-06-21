@@ -93,6 +93,7 @@ function getSessionMemory(sessionId) {
 	}
 	return sessionMemories[sessionId];
 }
+//app
 app.post("/chat", async (req, res) => {
 	const userMessage = req.body.message;
 	const useRAG = req.body.useRAG === undefined ? true : req.body.useRAG;
