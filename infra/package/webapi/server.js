@@ -1,15 +1,14 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { BufferMemory } from "langchain/memory";
-import { ChatMessageHistory } from "langchain/stores/message/in_memory";
-import ModelClient from "@azure-rest/ai-inference";
 import { AzureChatOpenAI } from "@langchain/openai";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import pdfParse from "pdf-parse/lib/pdf-parse.js";
+import { BufferMemory } from "langchain/memory";
+import { ChatMessageHistory } from "langchain/stores/message/in_memory";
 
 dotenv.config();
 
@@ -19,13 +18,14 @@ app.use(express.json());
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = path.resolve(__dirname, "../../../");
+const projectRoot = path.resolve(__dirname, "../..");
 const pdfPath = path.join(projectRoot, "data/employee_handbook.pdf");
+
 const chatModel = new AzureChatOpenAI({
-	azureOpenAIApiKey: process.env.AZURE_INFERENCE_SDK_KEY,
+	azureOpenAIApiKey: process.env.AZURE_INFERENCE_API_KEY,
 	azureOpenAIApiInstanceName: process.env.INSTANCE_NAME, // In target url: https://<INSTANCE_NAME>.services...
-	azureOpenAIApiDeploymentName: process.env.DEPLOYMENT_NAME, // i.e "gpt-4o"
-	azureOpenAIApiVersion: "2024-05-01-preview", // In target url: ...<VERSION>
+	azureOpenAIApiDeploymentName: process.env.AZUREAI_MODEL, // i.e "gpt-4o"
+	azureOpenAIApiVersion: "2024-08-01-preview", // In target url: ...<VERSION>
 	temperature: 1,
 	maxTokens: 4096,
 });
@@ -33,7 +33,6 @@ const chatModel = new AzureChatOpenAI({
 let pdfText = null;
 let pdfChunks = [];
 const CHUNK_SIZE = 800;
-const sessionMemories = {};
 
 async function loadPDF() {
 	if (pdfText) return pdfText;
@@ -82,6 +81,10 @@ function retrieveRelevantContent(query) {
 		.slice(0, 3)
 		.map((item) => item.chunk);
 }
+
+const sessionHistories = {};
+const sessionMemories = {};
+
 function getSessionMemory(sessionId) {
 	if (!sessionMemories[sessionId]) {
 		const history = new ChatMessageHistory();
@@ -108,16 +111,18 @@ app.post("/chat", async (req, res) => {
 		await loadPDF();
 		sources = retrieveRelevantContent(userMessage);
 	}
-// Prepare system prompt
+
+	// Prepare system prompt
 	const systemMessage = useRAG
 		? {
 				role: "system",
 				content:
 					sources.length > 0
-						? `You are a helpful assistant for Contoso Electronics. You must ONLY use the information provided below to answer.\n\n--- EMPLOYEE HANDBOOK EXCERPTS ---\n${sources.join(
-								"\n\n"
-						  )}\n--- END OF EXCERPTS ---`
-						: `You are a helpful assistant for Contoso Electronics. The excerpts do not contain relevant information for this question. Reply politely: \"I'm sorry, I don't know. The employee handbook does not contain information about that.\"`,
+						? `You are a helpful assistant for Contoso Electronics. You must ONLY use the information provided below to answer.
+              --- EMPLOYEE HANDBOOK EXCERPTS ---
+              ${sources.join("")}
+              --- END OF EXCERPTS ---`
+						: `You are a helpful assistant for Contoso Electronics. The excerpts do not contain relevant information for this question. Reply politely: "I'm sorry, I don't know. The employee handbook does not contain information about that."`,
 		  }
 		: {
 				role: "system",
@@ -126,7 +131,6 @@ app.post("/chat", async (req, res) => {
 		  };
 
 	try {
-	
 		const messages = [
 			systemMessage,
 			...(memoryVars.chat_history || []),
@@ -146,10 +150,11 @@ app.post("/chat", async (req, res) => {
 		res.status(500).json({
 			error: "Model call failed",
 			message: err.message,
-			reply: "Sorry, I encountered an error. Please try again.😶‍🌫️",
+			reply: "Sorry, I encountered an error. Please try again.",
 		});
 	}
 });
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
 	console.log(`AI API server running on port ${PORT}`);
