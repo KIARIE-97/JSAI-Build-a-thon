@@ -82,7 +82,6 @@ function retrieveRelevantContent(query) {
 		.map((item) => item.chunk);
 }
 
-const sessionHistories = {};
 const sessionMemories = {};
 
 function getSessionMemory(sessionId) {
@@ -118,11 +117,10 @@ app.post("/chat", async (req, res) => {
 				role: "system",
 				content:
 					sources.length > 0
-						? `You are a helpful assistant for Contoso Electronics. You must ONLY use the information provided below to answer.
-              --- EMPLOYEE HANDBOOK EXCERPTS ---
-              ${sources.join("")}
-              --- END OF EXCERPTS ---`
-						: `You are a helpful assistant for Contoso Electronics. The excerpts do not contain relevant information for this question. Reply politely: "I'm sorry, I don't know. The employee handbook does not contain information about that."`,
+						? `You are a helpful assistant for Contoso Electronics. You must ONLY use the information provided below to answer.\n\n--- EMPLOYEE HANDBOOK EXCERPTS ---\n${sources.join(
+								"\n\n"
+						  )}\n--- END OF EXCERPTS ---`
+						: `You are a helpful assistant for Contoso Electronics. The excerpts do not contain relevant information for this question. Reply politely: \"I'm sorry, I don't know. The employee handbook does not contain information about that.\"`,
 		  }
 		: {
 				role: "system",
@@ -131,6 +129,7 @@ app.post("/chat", async (req, res) => {
 		  };
 
 	try {
+		// Build final messages array
 		const messages = [
 			systemMessage,
 			...(memoryVars.chat_history || []),
