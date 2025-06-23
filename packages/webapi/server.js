@@ -60,7 +60,7 @@ async function loadPDF() {
 function retrieveRelevantContent(query) {
 	const queryTerms = query
 		.toLowerCase()
-		.split(/\s+/) // Converts query to relevant search terms
+		.split(/\s+/) // Convert query to relevant search terms
 		.filter((term) => term.length > 3)
 		.map((term) => term.replace(/[.,?!;:()"']/g, ""));
 
