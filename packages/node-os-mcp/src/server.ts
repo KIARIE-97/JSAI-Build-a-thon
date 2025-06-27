@@ -14,7 +14,7 @@ server.tool(
 	"Get the average CPU usage percentage on the local machine",
 	{},
 	async () => {
-		// Calculate average CPU usage over 100ms
+		// Calculates average CPU usage over 100ms 
 		function cpuAverage() {
 			const cpus = os.cpus();
 			let totalIdle = 0,
