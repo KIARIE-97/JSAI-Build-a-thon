@@ -1,3 +1,7 @@
+import dotenv from "dotenv";
+
+dotenv.config();
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const changes = await git.diff({ staged: true });
 
 // Provide the required 3rd argument (e.g., a label or options object as per defDiff's definition)
